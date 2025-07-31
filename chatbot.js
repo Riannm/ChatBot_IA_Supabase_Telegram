@@ -1,5 +1,4 @@
 // Importando as dependências necessárias
-require("dotenv").config(); // Carrega as variáveis de ambiente do arquivo .env
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const { executablePath } = require("puppeteer");
@@ -10,21 +9,29 @@ const TelegramBot = require('node-telegram-bot-api');
 let isWhatsAppBotActive = true; // Define o estado inicial do bot como ativo
 
 // --- CONFIGURAÇÕES E MENSAGENS ---
-const NOME_AUTOESCOLA = "Autoescola WBT de SJE";
+const NOME_AUTOESCOLA = "Autoescola WBT de São João Evangelista";
 
 // Credenciais do Telegram
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // Token do bot do Telegram
+const TELEGRAM_BOT_TOKEN =
+  process.env.TELEGRAM_BOT_TOKEN ||
+  "7934260697:AAEjI0XpENN5ml-8I4qYEDrcVKUYU3AwHwM"; // Token do bot do Telegram
 const urlApiTelegram = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`; // URL da API do Telegram para envio de mensagens
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // ID do chat do Telegram para notificações
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "6219371991"; // ID do chat do Telegram para notificações
 
 // CONFIGURAÇÕES DA INTELIGÊNCIA ARTIFICIAL (OpenRouter)
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ;
+const OPENROUTER_API_KEY =
+  process.env.OPENROUTER_API_KEY ||
+  "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";
 const OPENROUTER_MODEL = "openai/gpt-4.1-nano";
 
 // NOVO: CONFIGURAÇÕES DO SUPABASE
-const SUPABASE_URL =process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || "https://fcfydhdcpbgtnfkujgxc.supabase.co";
+const SUPABASE_KEY =
+  process.env.SUPABASE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZnlkaGRjcGJndG5ma3VqZ3hjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NDQwMTAsImV4cCI6MjA2OTMyMDAxMH0.piZ4oY6kqS5V_n5vspGURg1U4tdycQkyviLc0Dy0Xvw";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
 const telegramBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 

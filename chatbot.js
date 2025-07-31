@@ -265,22 +265,21 @@ const openAiClient = new OpenAI({
 console.log("Iniciando o bot da Autoescola...");
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        headless: true, // Use false para ver a janela do navegador em modo de depuração
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-extensions',
-            '--disable-dev-shm-usage',
-            '--no-default-browser-check',
-            '--single-process',
-            '--no-zygote',
-        ],
-        // Remove a linha executablePath, a biblioteca vai encontrar o executável automaticamente
-    }
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        executablePath: '/usr/bin/chromium-browser', // Caminho no Linux
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ],
+    }
 });
-
 // Controle de sessões para saber se é a primeira interação
 const sessoesUsuarios = new Map();
 

@@ -299,11 +299,23 @@ const openAiClient = new OpenAI({
 console.log("Iniciando o bot da Autoescola...");
 
 const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    executablePath: executablePath(),
-    headless: false,
-  },
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: true, // Use headless para rodar em servidor sem interface gráfica
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-extensions',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-video-decode',
+            '--disable-accelerated-video-encode',
+            '--no-default-browser-check',
+            '--single-process',
+            '--no-zygote'
+        ],
+        // NOVO: Adicione o caminho do executável do Chrome
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome'
+    }
 });
 
 // Controle de sessões para saber se é a primeira interação

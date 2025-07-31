@@ -301,20 +301,18 @@ console.log("Iniciando o bot da Autoescola...");
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        headless: true, // Use headless para rodar em servidor sem interface gráfica
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-extensions',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-video-decode',
-            '--disable-accelerated-video-encode',
             '--no-default-browser-check',
             '--single-process',
             '--no-zygote'
         ],
-        // NOVO: Adicione o caminho do executável do Chrome
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome'
+        // NOVO: Altere o caminho do executável do Chrome para Chromium
+        executablePath: '/usr/bin/chromium-browser' 
     }
 });
 

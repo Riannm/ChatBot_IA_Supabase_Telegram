@@ -1,0 +1,7 @@
+.env
+rodar_chatbot.bat
+node_modules/
+package-lock.json
+mensagens.sql
+.wwebjs_auth/
+.wwebjs_cache/

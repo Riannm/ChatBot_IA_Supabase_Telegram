@@ -1,0 +1,82 @@
+# Projeto: Bot de Atendimento e Marketing para WhatsApp
+
+## 1. Sobre o Projeto
+
+Este projeto consiste em um sistema de bot para WhatsApp desenvolvido em Node.js com a biblioteca `whatsapp-web.js`. O objetivo principal do bot é automatizar o primeiro contato com clientes, fornecendo um menu de atendimento interativo (funil) e, futuramente, realizar envios de mensagens em massa para uma lista de contatos.
+
+Este documento serve como uma especificação para a criação de uma interface de usuário (UI) web, que permitirá gerenciar a conexão com o WhatsApp e administrar a lista de contatos de forma visual e intuitiva.
+
+---
+
+## 2. Funcionalidades do Backend (Sistema Atual)
+
+O script principal em Node.js (`index.js`) possui as seguintes funcionalidades:
+
+* **Conexão com WhatsApp:** Utiliza a biblioteca `whatsapp-web.js` para conectar um número de WhatsApp ao sistema.
+* **Autenticação por QR Code:** Gera um QR Code no terminal que deve ser escaneado com o aplicativo do WhatsApp para autenticar e iniciar o bot.
+* **Monitoramento de Status:** Informa no console quando a conexão é bem-sucedida.
+* **Funil de Atendimento Automático:**
+    * Escuta por mensagens recebidas de novos contatos (`@c.us`).
+    * Ao receber uma saudação (`Oi`, `Olá`, etc.), o bot responde com uma mensagem de boas-vindas e um menu de opções numeradas.
+    * Responde com informações específicas baseadas na opção numérica enviada pelo usuário.
+    * Simula digitação e pausas para uma interação mais humana.
+
+---
+
+## 3. Objetivo: Criar uma Interface de Gerenciamento
+
+O objetivo é evoluir este sistema, saindo do gerenciamento via terminal para uma interface web amigável. A interface deve permitir que um usuário não-técnico possa operar o bot facilmente.
+
+A interface deverá ter duas funcionalidades centrais:
+
+1.  **Conexão com o WhatsApp:** Visualizar o status da conexão, gerar e exibir o QR Code para login.
+2.  **Gerenciamento de Contatos:** Adicionar novos números de telefone a uma lista salva em um arquivo no servidor.
+
+---
+
+## 4. Especificações para a Interface de Usuário (UI)
+
+A interface deve ser uma página web simples (single-page application) que se comunica com o backend Node.js através de uma API REST.
+
+### **Componente 1: Dashboard de Conexão**
+
+Esta será a tela principal da interface.
+
+* **Requisitos Visuais:**
+    * **Indicador de Status:** Um elemento visual (ex: um texto com um círculo colorido) que mostra o status atual da conexão:
+        * `Desconectado` (vermelho)
+        * `Aguardando QR Code` (amarelo)
+        * `Conectado` (verde)
+        * `Falha na Autenticação` (vermelho)
+    * **Área do QR Code:** Um espaço na tela onde o QR Code será renderizado como uma imagem. Este campo deve ficar visível apenas quando o status for `Aguardando QR Code`.
+    * **Botão de Ação:** Um botão "Conectar/Desconectar".
+        * Se o status for `Desconectado`, o texto do botão deve ser "Conectar". Ao clicar, deve iniciar o processo de conexão e exibir o QR Code.
+        * Se o status for `Aguardando QR Code`, o texto do botão deve ser "Atualizar QR Code". Ao clicar, deve gerar um novo QR Code.
+        * Se o status for `Conectado`, o texto do botão deve ser "Desconectar". Ao clicar, deve encerrar a sessão do WhatsApp.
+        * Se o status for `Falha na Autenticação`, o texto do botão deve ser "Tentar Novamente". Ao clicar, deve gerar um novo QR Code.
+
+* **Requisitos Funcionais:**
+    * Ao iniciar, a interface deve verificar o status da conexão com o WhatsApp.
+    * Se estiver conectado, deve exibir o status como `Conectado` e ocultar a área do QR Code.
+    * Se estiver desconectado, deve exibir o status como `Desconectado` e o botão deve estar com a opção de "Conectar".
+    * Ao clicar em "Conectar", deve ser enviado um comando para o backend iniciar o processo de conexão e gerar o QR Code.
+    * O QR Code deve ser exibido na área designada.
+    * O indicador de status deve mudar para `Aguardando QR Code`.
+    * Após escanear o QR Code com o WhatsApp, o status deve mudar para `Conectado` e o QR Code deve desaparecer.
+    * Se houver falha na autenticação, o status deve mudar para `Falha na Autenticação` e o botão deve mudar para "Tentar Novamente".
+
+---
+
+## 5. Como rodar a interface web
+
+1. Instale dependências:
+   ```
+   npm install express cors
+   ```
+2. Execute o backend:
+   ```
+   node advogados.js
+   ```
+3. Abra o arquivo `interface.html` no navegador.
+
+A interface web se comunica com o backend via API REST em `http://localhost:3001`.

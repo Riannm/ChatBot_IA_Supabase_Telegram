@@ -3,5 +3,7 @@ rodar_chatbot.bat
 node_modules/
 package-lock.json
 mensagens.sql
+chatbot_copy.js
+funcionando_chromium.js
 .wwebjs_auth/
 .wwebjs_cache/

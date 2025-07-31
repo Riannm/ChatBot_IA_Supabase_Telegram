@@ -1,190 +1,149 @@
 // Importando as dependências necessárias
+require("dotenv").config(); // Carrega as variáveis de ambiente do arquivo .env
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const { executablePath } = require("puppeteer");
 const axios = require("axios");
 const { OpenAI } = require("openai");
-const { createClient } = require("@supabase/supabase-js");
-const TelegramBot = require("node-telegram-bot-api");
+const { createClient } = require("@supabase/supabase-js"); 
+const TelegramBot = require('node-telegram-bot-api');
 let isWhatsAppBotActive = true; // Define o estado inicial do bot como ativo
 
 // --- CONFIGURAÇÕES E MENSAGENS ---
-const NOME_AUTOESCOLA = "Autoescola Sucesso";
+const NOME_AUTOESCOLA = "Autoescola WBT de SJE";
 
 // Credenciais do Telegram
-const TELEGRAM_BOT_TOKEN =
-  process.env.TELEGRAM_BOT_TOKEN ||
-  "7934260697:AAEjI0XpENN5ml-8I4qYEDrcVKUYU3AwHwM"; // Token do bot do Telegram
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // Token do bot do Telegram
 const urlApiTelegram = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`; // URL da API do Telegram para envio de mensagens
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "6219371991"; // ID do chat do Telegram para notificações
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // ID do chat do Telegram para notificações
 
 // CONFIGURAÇÕES DA INTELIGÊNCIA ARTIFICIAL (OpenRouter)
-const OPENROUTER_API_KEY =
-  process.env.OPENROUTER_API_KEY ||
-  "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";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ;
 const OPENROUTER_MODEL = "openai/gpt-4.1-nano";
 
 // NOVO: CONFIGURAÇÕES DO SUPABASE
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || "https://fcfydhdcpbgtnfkujgxc.supabase.co";
-const SUPABASE_KEY =
-  process.env.SUPABASE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZnlkaGRjcGJndG5ma3VqZ3hjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NDQwMTAsImV4cCI6MjA2OTMyMDAxMH0.piZ4oY6kqS5V_n5vspGURg1U4tdycQkyviLc0Dy0Xvw";
+const SUPABASE_URL =process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-//TELEGRAM BOT
 
 const telegramBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
 async function setTelegramCommands() {
-  try {
-    const commands = [
-      {
-        command: "relatorio",
-        description: "Gerar relatório de atividades do bot",
-      },
-      {
-        command: "status",
-        description: "Verificar o status do bot (WhatsApp, Supabase)",
-      },
-      {
-        command: "recarregar",
-        description: "Recarregar configurações e cache em memória",
-      },
-      {
-        command: "desativar",
-        description: "Desativar temporariamente o bot principal do WhatsApp",
-      },
-      { command: "ativar", description: "Ativar o bot principal do WhatsApp" },
-    ];
-    await telegramBot.setMyCommands(commands);
-    console.log("[TELEGRAM] Comandos do bot definidos com sucesso!");
-  } catch (error) {
-    console.error("[TELEGRAM] Erro ao definir comandos do bot:", error.message);
-  }
+    try {
+        const commands = [
+            { command: 'relatorio', description: 'Gerar relatório de atividades do bot' },
+            { command: 'status', description: 'Verificar o status do bot (WhatsApp, Supabase)' },
+            { command: 'recarregar', description: 'Recarregar configurações e cache em memória' },
+            { command: 'desativar', description: 'Desativar temporariamente o bot principal do WhatsApp' },
+            { command: 'ativar', description: 'Ativar o bot principal do WhatsApp' }
+        ];
+        await telegramBot.setMyCommands(commands);
+        console.log("[TELEGRAM] Comandos do bot definidos com sucesso!");
+    } catch (error) {
+        console.error("[TELEGRAM] Erro ao definir comandos do bot:", error.message);
+    }
 }
 
-console.log("[TELEGRAM] Bot Telegram iniciado e ouvindo mensagens...");
+console.log('[TELEGRAM] Bot Telegram iniciado e ouvindo mensagens...');
 
 setTelegramCommands();
 
 // MENSAGENS ADMIN DO TELEGRAM
-telegramBot.on("message", async (msg) => {
-  const chatId = msg.chat.id;
-  const text = msg.text;
-  const fromId = msg.from.id; // ID do usuário que enviou a mensagem
+telegramBot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+    const fromId = msg.from.id; // ID do usuário que enviou a mensagem
 
-  console.log(
-    `[TELEGRAM] Mensagem recebida de ${
-      msg.chat.first_name || msg.chat.title || fromId
-    }: "${text}"`
-  );
+    console.log(`[TELEGRAM] Mensagem recebida de ${msg.chat.first_name || msg.chat.title || fromId}: "${text}"`);
 
-  // Verifica se a mensagem veio do seu TELEGRAM_CHAT_ID (ID do administrador)
-  // Converte para string para comparação segura
-  if (String(chatId) !== String(TELEGRAM_CHAT_ID)) {
-    console.log(
-      `[TELEGRAM] Mensagem de chat não autorizado (${chatId}). Ignorando.`
-    );
-    telegramBot.sendMessage(
-      chatId,
-      "Olá! Este bot é privado e não interage com usuários fora do grupo de administração. Obrigado pela compreensão!"
-    );
-    return;
-  }
+    // Verifica se a mensagem veio do seu TELEGRAM_CHAT_ID (ID do administrador)
+    // Converte para string para comparação segura
+    if (String(chatId) !== String(TELEGRAM_CHAT_ID)) {
+        console.log(`[TELEGRAM] Mensagem de chat não autorizado (${chatId}). Ignorando.`);
+        telegramBot.sendMessage(chatId, "Olá! Este bot é privado e não interage com usuários fora do grupo de administração. Obrigado pela compreensão!");
+        return;
+    }
 
-  // --- Lógica para os comandos ---
-  if (text === "/relatorio") {
-    telegramBot.sendMessage(chatId, "Gerando relatório, aguarde...");
-    await gerarRelatorioCompleto(); // Chama a sua função de relatório
-  } else if (text === "/status") {
-    // Implementa a lógica para verificar o status do bot (WhatsApp, Supabase)
-    let whatsappStatus = "🔴 Inativo ou não conectado";
-    if (client && client.pupPage) {
-      // Verifica se a instância do cliente WhatsApp existe e se a página do puppeteer está aberta
-      try {
-        const status = await client.getState(); // Verifica o estado da conexão do WhatsApp
-        if (status === "CONNECTED") {
-          whatsappStatus = "🟢 Conectado";
-        } else {
-          whatsappStatus = `🟡 Estado: ${status}`;
+    // --- Lógica para os comandos ---
+    if (text === '/relatorio') {
+        telegramBot.sendMessage(chatId, "Gerando relatório, aguarde...");
+        await gerarRelatorioCompleto(); // Chama a sua função de relatório
+    } else if (text === '/status') {
+        // Implementa a lógica para verificar o status do bot (WhatsApp, Supabase)
+        let whatsappStatus = "🔴 Inativo ou não conectado";
+        if (client && client.pupPage) { // Verifica se a instância do cliente WhatsApp existe e se a página do puppeteer está aberta
+             try {
+                 const status = await client.getState(); // Verifica o estado da conexão do WhatsApp
+                 if (status === 'CONNECTED') {
+                     whatsappStatus = "🟢 Conectado";
+                 } else {
+                     whatsappStatus = `🟡 Estado: ${status}`;
+                 }
+             } catch (e) {
+                 whatsappStatus = `🟠 Erro ao verificar: ${e.message}`;
+             }
         }
-      } catch (e) {
-        whatsappStatus = `🟠 Erro ao verificar: ${e.message}`;
-      }
+
+        let supabaseStatus = "🔴 Desconectado ou com erro";
+        try {
+            // Tenta fazer uma consulta simples para verificar a conexão com Supabase
+            const { data, error } = await supabase.from('mensagens').select('id').limit(1);
+            if (!error) {
+                supabaseStatus = "🟢 Conectado";
+            } else {
+                supabaseStatus = `🟠 Erro: ${error.message}`;
+            }
+        } catch (e) {
+            supabaseStatus = `🟠 Erro na conexão: ${e.message}`;
+        }
+
+        const botActiveStatus = isWhatsAppBotActive ? "🟢 Ativo" : "🔴 Desativado";
+
+        const statusMessage = `🤖 *Status do Bot*\n\n` +
+                              `WhatsApp: *${whatsappStatus}*\n` +
+                              `Supabase: *${supabaseStatus}*\n` +
+                              `Bot Principal (WhatsApp): *${botActiveStatus}*\n` +
+                              `Bot Telegram: *🟢 Ativo*`; // O bot Telegram sempre estará ativo se estiver respondendo
+
+        telegramBot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
+
+    } else if (text === '/recarregar') {
+        telegramBot.sendMessage(chatId, "Recarregando configurações/cache... (se houver)");
+        // Implemente a lógica para recarregar dados ou cache aqui.
+        // Por exemplo, se você carrega preços de um arquivo ou do Supabase no início:
+        // await carregarPrecosDoSupabase(); // Exemplo de função que recarrega dados
+        // await carregarFluxosDeConversa(); // Exemplo de função que recarrega fluxos
+
+        // Se você tiver dados carregados em memória (por exemplo, a variável `respostas`),
+        // e esses dados podem mudar sem o bot reiniciar, você os recarregaria aqui.
+        // No seu código atual, `respostas` parece ser um objeto estático, e `AI_SYSTEM_PROMPT`
+        // vem de variáveis de ambiente. Se eles precisassem ser recarregados de um DB,
+        // você chamaria uma função que os busque novamente.
+
+        // Por enquanto, apenas um log, mas você pode adicionar mais aqui no futuro.
+        console.log("[BOT] Tentativa de recarregar configurações.");
+        telegramBot.sendMessage(chatId, "✅ Configurações recarregadas com sucesso (se houver dados dinâmicos para recarregar).");
+
+    } else if (text === '/desativar') {
+        isWhatsAppBotActive = false; // Define a variável global como false
+        console.log("[BOT] Bot de WhatsApp desativado por comando do Telegram.");
+        telegramBot.sendMessage(chatId, "🔴 Bot principal de WhatsApp *desativado*.");
+
+    } else if (text === '/ativar') {
+        isWhatsAppBotActive = true; // Define a variável global como true
+        console.log("[BOT] Bot de WhatsApp ativado por comando do Telegram.");
+        telegramBot.sendMessage(chatId, "🟢 Bot principal de WhatsApp *ativado*.");
+
+    } else {
+        telegramBot.sendMessage(chatId, "Comando não reconhecido. Comandos disponíveis: /relatorio, /status, /recarregar, /desativar, /ativar");
     }
-
-    let supabaseStatus = "🔴 Desconectado ou com erro";
-    try {
-      // Tenta fazer uma consulta simples para verificar a conexão com Supabase
-      const { data, error } = await supabase
-        .from("mensagens")
-        .select("id")
-        .limit(1);
-      if (!error) {
-        supabaseStatus = "🟢 Conectado";
-      } else {
-        supabaseStatus = `🟠 Erro: ${error.message}`;
-      }
-    } catch (e) {
-      supabaseStatus = `🟠 Erro na conexão: ${e.message}`;
-    }
-
-    const botActiveStatus = isWhatsAppBotActive ? "🟢 Ativo" : "🔴 Desativado";
-
-    const statusMessage =
-      `🤖 *Status do Bot*\n\n` +
-      `WhatsApp: *${whatsappStatus}*\n` +
-      `Supabase: *${supabaseStatus}*\n` +
-      `Bot Principal (WhatsApp): *${botActiveStatus}*\n` +
-      `Bot Telegram: *🟢 Ativo*`; // O bot Telegram sempre estará ativo se estiver respondendo
-
-    telegramBot.sendMessage(chatId, statusMessage, { parse_mode: "Markdown" });
-  } else if (text === "/recarregar") {
-    telegramBot.sendMessage(
-      chatId,
-      "Recarregando configurações/cache... (se houver)"
-    );
-    // Implemente a lógica para recarregar dados ou cache aqui.
-    // Por exemplo, se você carrega preços de um arquivo ou do Supabase no início:
-    // await carregarPrecosDoSupabase(); // Exemplo de função que recarrega dados
-    // await carregarFluxosDeConversa(); // Exemplo de função que recarrega fluxos
-
-    // Se você tiver dados carregados em memória (por exemplo, a variável `respostas`),
-    // e esses dados podem mudar sem o bot reiniciar, você os recarregaria aqui.
-    // No seu código atual, `respostas` parece ser um objeto estático, e `AI_SYSTEM_PROMPT`
-    // vem de variáveis de ambiente. Se eles precisassem ser recarregados de um DB,
-    // você chamaria uma função que os busque novamente.
-
-    // Por enquanto, apenas um log, mas você pode adicionar mais aqui no futuro.
-    console.log("[BOT] Tentativa de recarregar configurações.");
-    telegramBot.sendMessage(
-      chatId,
-      "✅ Configurações recarregadas com sucesso (se houver dados dinâmicos para recarregar)."
-    );
-  } else if (text === "/desativar") {
-    isWhatsAppBotActive = false; // Define a variável global como false
-    console.log("[BOT] Bot de WhatsApp desativado por comando do Telegram.");
-    telegramBot.sendMessage(
-      chatId,
-      "🔴 Bot principal de WhatsApp *desativado*."
-    );
-  } else if (text === "/ativar") {
-    isWhatsAppBotActive = true; // Define a variável global como true
-    console.log("[BOT] Bot de WhatsApp ativado por comando do Telegram.");
-    telegramBot.sendMessage(chatId, "🟢 Bot principal de WhatsApp *ativado*.");
-  } else {
-    telegramBot.sendMessage(
-      chatId,
-      "Comando não reconhecido. Comandos disponíveis: /relatorio, /status, /recarregar, /desativar, /ativar"
-    );
-  }
 });
 
 // Tratamento de erros para o bot do Telegram
-telegramBot.on("polling_error", (error) => {
-  console.error("[TELEGRAM ERROR] Erro no polling:", error.code, error.message);
+telegramBot.on('polling_error', (error) => {
+    console.error('[TELEGRAM ERROR] Erro no polling:', error.code, error.message);
 });
+
 
 const AI_SYSTEM_PROMPT = `Você é Cadu, o assistente virtual especialista da ${NOME_AUTOESCOLA}. Você atua em um chatbot do WhatsApp que funciona 24/7 para atender clientes interessados em tirar carteira de habilitação.
 
@@ -299,19 +258,20 @@ const openAiClient = new OpenAI({
 console.log("Iniciando o bot da Autoescola...");
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-extensions',
-            '--disable-dev-shm-usage',
-            '--no-default-browser-check',
-            '--single-process',
-            '--no-zygote'
-        ],
-    }
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: true, // Use false para ver a janela do navegador em modo de depuração
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-extensions',
+            '--disable-dev-shm-usage',
+            '--no-default-browser-check',
+            '--single-process',
+            '--no-zygote',
+        ],
+        // Remove a linha executablePath, a biblioteca vai encontrar o executável automaticamente
+    }
 });
 
 // Controle de sessões para saber se é a primeira interação
@@ -471,11 +431,6 @@ async function obterRespostaDaIA(mensagemUsuario, historicoUsuario = "") {
         { role: "system", content: contextoCompleto },
         { role: "user", content: mensagemUsuario },
       ],
-      temperature: 0.5, // Menor para respostas mais focadas e menos criativas
-      top_p: 0.9, // Limita a seleção de tokens aos mais prováveis
-      max_tokens: 150, // Limita o tamanho máximo da resposta. Ajuste conforme necessário.
-      frequency_penalty: 0.3, // Reduz a chance de repetir palavras
-      presence_penalty: 0.3, // Reduz a chance de repetir tópicos/ideias
     });
     return completion.choices[0].message.content;
   } catch (error) {
@@ -496,9 +451,7 @@ client.on("message", async (msg) => {
   }
 
   if (!isWhatsAppBotActive) {
-    console.log(
-      `[WHATSAPP] Bot desativado. Ignorando mensagem de ${msg.from}.`
-    );
+    console.log(`[WHATSAPP] Bot desativado. Ignorando mensagem de ${msg.from}.`);
     // Opcional: Você pode enviar uma mensagem informando que o bot está desativado
     // await client.sendMessage(msg.from, "Olá! O bot está temporariamente desativado para manutenção. Por favor, tente novamente mais tarde.");
     return; // Não processa a mensagem se o bot estiver desativado
@@ -563,13 +516,11 @@ client.on("message", async (msg) => {
       respostaEnviada = respostas.opcao2;
       intencaoDetectada = "PRECOS_PACOTES";
       await enviarMensagemComTipagem(chat, respostaEnviada);
-    } else if (textoRecebidoLower === "3") {
-      // Ajustei o número aqui se o seu menu foi ajustado acima
+    } else if (textoRecebidoLower === "3") { // Ajustei o número aqui se o seu menu foi ajustado acima
       respostaEnviada = respostas.opcao3;
       intencaoDetectada = "DOCUMENTOS"; // Se for a opção 3 original, era documentos
       await enviarMensagemComTipagem(chat, respostaEnviada);
-    } else if (textoRecebidoLower === "4") {
-      // Ajustei o número aqui se o seu menu foi ajustado acima
+    } else if (textoRecebidoLower === "4") { // Ajustei o número aqui se o seu menu foi ajustado acima
       respostaEnviada = respostas.opcao4;
       intencaoDetectada = "HORARIOS_AULAS"; // Se for a opção 4 original, era horários
       await enviarMensagemComTipagem(chat, respostaEnviada);
@@ -603,11 +554,7 @@ client.on("message", async (msg) => {
     // NOVO: Salvar mensagem recebida no Supabase com intenção e flag de escalada
     // Se a mensagem inicial já foi salva no bloco de saudação, não salva de novo.
     // Caso contrário, salva a mensagem recebida aqui com a intenção.
-    if (
-      !textoRecebidoLower.match(
-        /^(oi|olá|ola|menu|começar|inicio|dia|tarde|noite|boa)$/i
-      )
-    ) {
+    if (!textoRecebidoLower.match(/^(oi|olá|ola|menu|começar|inicio|dia|tarde|noite|boa)$/i)) {
       await salvarMensagemSupabase(
         userId,
         textoRecebido,
@@ -617,6 +564,7 @@ client.on("message", async (msg) => {
         foiEscaladaParaHumano // Salva a flag de escalada
       );
     }
+
 
     // NOVO: Salvar resposta enviada no Supabase (para todas as respostas)
     if (respostaEnviada) {
@@ -645,12 +593,12 @@ client.on("message", async (msg) => {
     );
     // Salva a mensagem recebida que causou o erro com a intenção 'ERRO_SISTEMA'
     await salvarMensagemSupabase(
-      userId,
-      textoRecebido,
-      "recebida",
-      contact.pushname,
-      "ERRO_SISTEMA", // A intenção é erro do sistema
-      false // Não foi escalada diretamente
+        userId,
+        textoRecebido,
+        "recebida",
+        contact.pushname,
+        "ERRO_SISTEMA", // A intenção é erro do sistema
+        false // Não foi escalada diretamente
     );
   }
 });
@@ -698,9 +646,7 @@ async function gerarRelatorioCompleto() {
       console.log("[RELATÓRIO] Nenhuma mensagem encontrada nas últimas 24h.");
     } else {
       const totalMensagens = mensagensRecebidas.length;
-      const usuariosUnicos = [
-        ...new Set(mensagensRecebidas.map((m) => m.user_texto)),
-      ];
+      const usuariosUnicos = [...new Set(mensagensRecebidas.map((m) => m.user_texto))];
       const numUsuariosUnicos = usuariosUnicos.length;
 
       const mediaMensagensPorUsuario = (
@@ -720,59 +666,45 @@ async function gerarRelatorioCompleto() {
 
       let intencoesTexto = "\n*Principais Tópicos de Conversa:*\n";
       topIntencoes.forEach(([intencao, count], index) => {
-        intencoesTexto += `${index + 1}. ${intencao.replace(
-          /_/g,
-          " "
-        )}: ${count} vezes\n`; // Formata a intenção
+        intencoesTexto += `${index + 1}. ${intencao.replace(/_/g, ' ')}: ${count} vezes\n`; // Formata a intenção
       });
 
       // --- Contagem de Escalas para Humano ---
-      const totalEscalasHumano = mensagensRecebidas.filter(
-        (m) => m.escalada_humano
-      ).length;
+      const totalEscalasHumano = mensagensRecebidas.filter(m => m.escalada_humano).length;
 
       // --- Novos Contatos vs. Contatos Recorrentes ---
       // CHAMADA À NOVA FUNÇÃO RPC
-      const {
-        data: primeiraInteracaoDosUsuariosDoPeriodo,
-        error: erroPrimeiraInteracao,
-      } = await supabase.rpc("get_first_interaction_times", {
-        user_texts: usuariosUnicos,
-      }); // Passa o array de user_texts
+      const { data: primeiraInteracaoDosUsuariosDoPeriodo, error: erroPrimeiraInteracao } = await supabase
+          .rpc('get_first_interaction_times', { user_texts: usuariosUnicos }); // Passa o array de user_texts
 
       if (erroPrimeiraInteracao) {
-        console.error(
-          "[ERRO RELATÓRIO] Erro ao buscar primeira interação dos usuários via RPC:",
-          erroPrimeiraInteracao.message
-        );
+          console.error('[ERRO RELATÓRIO] Erro ao buscar primeira interação dos usuários via RPC:', erroPrimeiraInteracao.message);
       } else {
-        let novosContatos = 0;
-        let contatosRecorrentes = 0;
+          let novosContatos = 0;
+          let contatosRecorrentes = 0;
+          
+          primeiraInteracaoDosUsuariosDoPeriodo.forEach(user => {
+              const primeiraInteracaoTempo = new Date(user.primeiro_tempo).getTime();
+              const umDiaAtrasMs = new Date(umDiaAtras).getTime();
 
-        primeiraInteracaoDosUsuariosDoPeriodo.forEach((user) => {
-          const primeiraInteracaoTempo = new Date(
-            user.primeiro_tempo
-          ).getTime();
-          const umDiaAtrasMs = new Date(umDiaAtras).getTime();
+              if (primeiraInteracaoTempo >= umDiaAtrasMs) {
+                  // Se a primeira interação *total* desse usuário foi dentro das últimas 24h
+                  novosContatos++; 
+              } else {
+                  // Se a primeira interação *total* desse usuário foi antes das últimas 24h
+                  contatosRecorrentes++; 
+              }
+          });
 
-          if (primeiraInteracaoTempo >= umDiaAtrasMs) {
-            // Se a primeira interação *total* desse usuário foi dentro das últimas 24h
-            novosContatos++;
-          } else {
-            // Se a primeira interação *total* desse usuário foi antes das últimas 24h
-            contatosRecorrentes++;
-          }
-        });
-
-        mensagemRelatorio =
-          `📊 *Relatório das últimas 24h*\n\n` +
-          `Total de mensagens recebidas: *${totalMensagens}*\n` +
-          `Usuários únicos que enviaram mensagem: *${numUsuariosUnicos}*\n` +
-          `Média de mensagens por usuário: *${mediaMensagensPorUsuario}*\n\n` +
-          `✅ Conversas escaladas para humano: *${totalEscalasHumano}*\n\n` +
-          `🆕 Novos contatos no período: *${novosContatos}*\n` +
-          `🔁 Contatos recorrentes no período: *${contatosRecorrentes}*\n\n` +
-          intencoesTexto; // Adiciona o texto das intenções
+          mensagemRelatorio =
+            `📊 *Relatório das últimas 24h*\n\n` +
+            `Total de mensagens recebidas: *${totalMensagens}*\n` +
+            `Usuários únicos que enviaram mensagem: *${numUsuariosUnicos}*\n` +
+            `Média de mensagens por usuário: *${mediaMensagensPorUsuario}*\n\n` +
+            `✅ Conversas escaladas para humano: *${totalEscalasHumano}*\n\n` +
+            `🆕 Novos contatos no período: *${novosContatos}*\n` +
+            `🔁 Contatos recorrentes no período: *${contatosRecorrentes}*\n\n` +
+            intencoesTexto; // Adiciona o texto das intenções
       }
 
       console.log(

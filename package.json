@@ -5,6 +5,8 @@
     "dot": "^1.1.3",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "groq-sdk": "^0.29.0",
     "moment-timezone": "^0.5.45",
     "node-telegram-bot-api": "^0.66.0",
     "openai": "^5.11.0",

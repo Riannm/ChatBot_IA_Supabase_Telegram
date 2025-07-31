@@ -311,8 +311,6 @@ const client = new Client({
             '--single-process',
             '--no-zygote'
         ],
-        // NOVO: Altere o caminho do executável do Chrome para Chromium
-        executablePath: '/usr/bin/chromium-browser' 
     }
 });
 

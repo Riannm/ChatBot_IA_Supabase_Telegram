@@ -1,4 +1,5 @@
 // Importando as dependências necessárias
+require("dotenv").config();
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const { executablePath } = require("puppeteer");
@@ -6,6 +7,7 @@ const axios = require("axios");
 const { OpenAI } = require("openai");
 const { createClient } = require("@supabase/supabase-js"); 
 const TelegramBot = require('node-telegram-bot-api');
+process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 let isWhatsAppBotActive = true; // Define o estado inicial do bot como ativo
 
 // --- CONFIGURAÇÕES E MENSAGENS ---
@@ -266,7 +268,7 @@ console.log("Iniciando o bot da Autoescola...");
 
 const client = new Client({
     authStrategy: new LocalAuth({
-        clientId: "autoescola-bot" // ID único para salvar a sessão
+        clientId: "autoescola-bot"
     }),
     puppeteer: {
         headless: true,
@@ -277,12 +279,9 @@ const client = new Client({
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu',
-            '--disable-extensions',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
+            '--disable-gpu'
         ]
+        // Removemos completamente o executablePath
     }
 });
 // Controle de sessões para saber se é a primeira interação

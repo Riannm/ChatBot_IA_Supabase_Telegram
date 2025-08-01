@@ -1,82 +1,284 @@
-# Projeto: Bot de Atendimento e Marketing para WhatsApp
+# 🚗 Bot Autoescola
 
-## 1. Sobre o Projeto
+Um bot inteligente multicanal para autoescolas que atende clientes via WhatsApp e Telegram, utilizando IA para fornecer informações sobre cursos, preços, documentação e agendamentos.
 
-Este projeto consiste em um sistema de bot para WhatsApp desenvolvido em Node.js com a biblioteca `whatsapp-web.js`. O objetivo principal do bot é automatizar o primeiro contato com clientes, fornecendo um menu de atendimento interativo (funil) e, futuramente, realizar envios de mensagens em massa para uma lista de contatos.
+## 🌟 Funcionalidades
 
-Este documento serve como uma especificação para a criação de uma interface de usuário (UI) web, que permitirá gerenciar a conexão com o WhatsApp e administrar a lista de contatos de forma visual e intuitiva.
+### 🤖 IA Conversacional
+- **Atendimento automatizado** com modelos de linguagem avançados
+- **Respostas contextuais** sobre serviços da autoescola
+- **Múltiplos provedores de IA**: OpenRouter, Groq
+- **Busca inteligente** com integração Tavily
+
+### 📱 Canais de Atendimento
+- **WhatsApp Business**: Atendimento via whatsapp-web.js
+- **Telegram**: Bot nativo com comandos e respostas automáticas
+- **QR Code no terminal** para fácil configuração do WhatsApp
+
+### 💾 Banco de Dados
+- **Supabase** para armazenamento de conversas e dados
+- **Histórico de conversas** para cada cliente
+- **Analytics** de atendimento e performance
+
+### 🔍 Recursos Avançados
+- **Busca na web** para informações atualizadas
+- **Respostas personalizadas** baseadas no histórico
+- **Logs detalhados** para monitoramento
+- **Deploy em produção** otimizado para VPS
+
+## 🚀 Início Rápido
+
+### Pré-requisitos
+
+- Node.js 20+ (recomendado)
+- Conta no Supabase
+- Token do Bot Telegram
+- Chaves de API dos provedores de IA
+
+### 📦 Instalação
+
+1. **Clone o repositório**
+```bash
+git clone https://github.com/seu-usuario/bot-autoescola.git
+cd bot-autoescola
+```
+
+2. **Instale as dependências**
+```bash
+npm install
+```
+
+3. **Configure as variáveis de ambiente**
+```bash
+cp .env.example .env
+```
+
+### ⚙️ Configuração
+
+#### Variáveis de Ambiente Obrigatórias
+
+```env
+# Supabase
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=sua_chave_anonima_supabase
+
+# Telegram
+TELEGRAM_BOT_TOKEN=1234567890:ABCDEF...
+TELEGRAM_CHAT_ID=seu_chat_id
+
+# IA - OpenRouter
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Busca Web - Tavily
+TAVILY_API_KEY=tvly-...
+
+# WhatsApp/Puppeteer
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+```
+
+#### Configuração do Supabase
+
+1. Crie um novo projeto no [Supabase](https://supabase.com)
+2. Execute o SQL para criar as tabelas necessárias:
+
+```sql
+-- Criação da tabela 'mensagens'
+-- https://supabase.com/dashboard/project/fcfydhdcpbgtnfkujgxc/editor/18475?schema=public
+CREATE TABLE mensagens (
+    id BIGSERIAL PRIMARY KEY,
+    user_texto TEXT NOT NULL,
+    mensagem TEXT NOT NULL,
+    tempo TIMESTAMP WITH TIME ZONE NOT NULL,
+    tipo_mensagem TEXT DEFAULT 'recebida' CHECK (tipo_mensagem IN ('recebida', 'enviada')),
+    nome_contato TEXT,
+    -- Novas colunas adicionadas
+    intencao TEXT,
+    escalada_humano BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Criação de índices para otimização de performance
+CREATE INDEX idx_mensagens_user_texto ON mensagens(user_texto);
+CREATE INDEX idx_mensagens_tempo ON mensagens(tempo DESC);
+CREATE INDEX idx_mensagens_tipo ON mensagens(tipo_mensagem);
+CREATE INDEX idx_mensagens_intencao ON mensagens(intencao); -- Índice para a nova coluna 'intencao'
+CREATE INDEX idx_mensagens_escalada_humano ON mensagens(escalada_humano); -- Índice para a nova coluna 'escalada_humano'
+
+-- Comentários para documentação (opcional, mas boa prática)
+COMMENT ON TABLE mensagens IS 'Armazena todas as mensagens do chatbot (enviadas e recebidas)';
+COMMENT ON COLUMN mensagens.id IS 'Identificador único da mensagem';
+COMMENT ON COLUMN mensagens.user_texto IS 'ID único do usuário do WhatsApp (número de telefone)';
+COMMENT ON COLUMN mensagens.mensagem IS 'Conteúdo da mensagem';
+COMMENT ON COLUMN mensagens.tempo IS 'Timestamp da mensagem, refletindo o momento de envio/recebimento';
+COMMENT ON COLUMN mensagens.tipo_mensagem IS 'Tipo de mensagem: "recebida" (do cliente) ou "enviada" (do bot)';
+COMMENT ON COLUMN mensagens.nome_contato IS 'Nome do contato do WhatsApp, se disponível';
+COMMENT ON COLUMN mensagens.intencao IS 'Intenção ou tópico da mensagem identificada pelo bot (ex: PRECOS, AGENDAMENTO, IA_GERAL)';
+COMMENT ON COLUMN mensagens.escalada_humano IS 'Indica se a conversa foi escalada para atendimento humano (TRUE/FALSE)';
+COMMENT ON COLUMN mensagens.created_at IS 'Timestamp de quando o registro foi criado no banco de dados';
+
+-- (Opcional) Função RPC para 'get_first_interaction_times'
+-- Se você quiser usar a mesma lógica de relatório de novos/recorrentes usuários,
+-- você também precisará criar esta função no novo banco de dados.
+CREATE OR REPLACE FUNCTION get_first_interaction_times(user_texts TEXT[])
+RETURNS TABLE (user_texto TEXT, primeiro_tempo TIMESTAMPTZ) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        m.user_texto,
+        MIN(m.tempo) AS primeiro_tempo
+    FROM
+        mensagens m
+    WHERE
+        m.user_texto = ANY(user_texts)
+    GROUP BY
+        m.user_texto;
+END;
+$$ LANGUAGE plpgsql;
+
+-- (Opcional) Conceder permissões de execução para a função, se sua política RLS exigir
+-- GRANT EXECUTE ON FUNCTION get_first_interaction_times(TEXT[]) TO anon;
+-- GRANT EXECUTE ON FUNCTION get_first_interaction_times(TEXT[]) TO authenticated;
+```
+
+#### Configuração do Telegram
+
+1. Crie um bot com [@BotFather](https://t.me/botfather)
+2. Use `/newbot` e siga as instruções
+3. Copie o token fornecido
+4. Para obter o Chat ID:
+   - Envie uma mensagem para seu bot
+   - Acesse: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+   - Copie o `chat.id` da resposta
+
+## 🖥️ Uso
+
+### Desenvolvimento Local
+
+```bash
+# Iniciar em modo desenvolvimento
+npm run dev
+
+# Ou iniciar normalmente
+npm start
+```
+
+### Configuração do WhatsApp
+
+1. Execute o bot
+2. Procure pelo QR Code nos logs do terminal
+3. Escaneie o QR Code com seu WhatsApp
+4. O bot ficará conectado automaticamente
+
+```
+📱 ESCANEIE O QR CODE ABAIXO COM SEU WHATSAPP:
+
+██████████████  ██  ██████████████
+██          ██      ██          ██
+██  ██████  ██  ██  ██  ██████  ██
+██  ██████  ██  ██  ██  ██████  ██
+██  ██████  ██      ██  ██████  ██
+██          ██  ██  ██          ██
+██████████████  ██  ██████████████
+```
+
+### Comandos do Telegram
+
+- `/start` - Iniciar conversa
+- `/help` - Mostrar ajuda
+- `/info` - Informações da autoescola
+- `/precos` - Tabela de preços
+- `/contato` - Informações de contato
+
+## 📊 Monitoramento
+
+### Logs Estruturados
+
+O bot gera logs detalhados para monitoramento:
+
+```
+✅ Bot Telegram iniciado
+🚀 Bot WhatsApp da Autoescola está rodando!
+📨 Nova mensagem de 5511999999999: Quero informações sobre CNH
+🤖 Resposta enviada: Olá! Temos cursos para CNH A, B, C, D e E...
+```
+
+### Métricas Disponíveis
+
+- Total de conversas por plataforma
+- Usuários únicos atendidos
+- Tempo de resposta médio
+- Tópicos mais consultados
+
+### Adicionando Novos Recursos
+
+1. **Novos comandos Telegram**: Edite `src/telegram/commands.js`
+2. **Respostas WhatsApp**: Modifique `src/whatsapp/handlers.js`
+3. **Prompts de IA**: Atualize `src/ai/prompts.js`
+
+## 🔧 Solução de Problemas
+
+### Problemas Comuns
+
+#### WhatsApp não conecta
+```bash
+# Verifique se o QR code está sendo gerado
+npm install qrcode-terminal
+
+# Limpe sessões antigas
+rm -rf .wwebjs_auth/
+```
+
+#### Erro do Supabase
+```bash
+# Verifique as variáveis
+echo $SUPABASE_URL
+echo $SUPABASE_ANON_KEY
+```
+
+### Logs de Debug
+
+Para logs mais detalhados:
+
+```env
+DEBUG=true
+NODE_ENV=development
+```
+
+## 📈 Performance
+
+### Otimizações Implementadas
+
+- **Headless WhatsApp** - Sem interface gráfica
+- **Cache de sessões** - Evita reconexões
+- **Conexão persistente** - Mantém bots online
+- **Logs otimizados** - Apenas informações essenciais
+
+### Recursos de Sistema
+
+- **RAM**: ~200MB em produção
+- **CPU**: Baixo uso, picos durante processamento IA
+- **Rede**: Dependente do volume de mensagens
+
+## 🤝 Contribuição
+
+1. Faça um fork do projeto
+2. Crie uma branch: `git checkout -b minha-feature`
+3. Commit suas mudanças: `git commit -m 'Adiciona nova feature'`
+4. Push para a branch: `git push origin minha-feature`
+5. Abra um Pull Request
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 🆘 Suporte
+
+- **Issues**: [GitHub Issues](https://github.com/seu-usuario/bot-autoescola/issues)
+- **Documentação**: [Wiki do Projeto](https://github.com/seu-usuario/bot-autoescola/wiki)
+- **Contato**: seu-email@exemplo.com
 
 ---
 
-## 2. Funcionalidades do Backend (Sistema Atual)
+⭐ **Se este projeto foi útil, considere dar uma estrela no GitHub!**
 
-O script principal em Node.js (`index.js`) possui as seguintes funcionalidades:
-
-* **Conexão com WhatsApp:** Utiliza a biblioteca `whatsapp-web.js` para conectar um número de WhatsApp ao sistema.
-* **Autenticação por QR Code:** Gera um QR Code no terminal que deve ser escaneado com o aplicativo do WhatsApp para autenticar e iniciar o bot.
-* **Monitoramento de Status:** Informa no console quando a conexão é bem-sucedida.
-* **Funil de Atendimento Automático:**
-    * Escuta por mensagens recebidas de novos contatos (`@c.us`).
-    * Ao receber uma saudação (`Oi`, `Olá`, etc.), o bot responde com uma mensagem de boas-vindas e um menu de opções numeradas.
-    * Responde com informações específicas baseadas na opção numérica enviada pelo usuário.
-    * Simula digitação e pausas para uma interação mais humana.
-
----
-
-## 3. Objetivo: Criar uma Interface de Gerenciamento
-
-O objetivo é evoluir este sistema, saindo do gerenciamento via terminal para uma interface web amigável. A interface deve permitir que um usuário não-técnico possa operar o bot facilmente.
-
-A interface deverá ter duas funcionalidades centrais:
-
-1.  **Conexão com o WhatsApp:** Visualizar o status da conexão, gerar e exibir o QR Code para login.
-2.  **Gerenciamento de Contatos:** Adicionar novos números de telefone a uma lista salva em um arquivo no servidor.
-
----
-
-## 4. Especificações para a Interface de Usuário (UI)
-
-A interface deve ser uma página web simples (single-page application) que se comunica com o backend Node.js através de uma API REST.
-
-### **Componente 1: Dashboard de Conexão**
-
-Esta será a tela principal da interface.
-
-* **Requisitos Visuais:**
-    * **Indicador de Status:** Um elemento visual (ex: um texto com um círculo colorido) que mostra o status atual da conexão:
-        * `Desconectado` (vermelho)
-        * `Aguardando QR Code` (amarelo)
-        * `Conectado` (verde)
-        * `Falha na Autenticação` (vermelho)
-    * **Área do QR Code:** Um espaço na tela onde o QR Code será renderizado como uma imagem. Este campo deve ficar visível apenas quando o status for `Aguardando QR Code`.
-    * **Botão de Ação:** Um botão "Conectar/Desconectar".
-        * Se o status for `Desconectado`, o texto do botão deve ser "Conectar". Ao clicar, deve iniciar o processo de conexão e exibir o QR Code.
-        * Se o status for `Aguardando QR Code`, o texto do botão deve ser "Atualizar QR Code". Ao clicar, deve gerar um novo QR Code.
-        * Se o status for `Conectado`, o texto do botão deve ser "Desconectar". Ao clicar, deve encerrar a sessão do WhatsApp.
-        * Se o status for `Falha na Autenticação`, o texto do botão deve ser "Tentar Novamente". Ao clicar, deve gerar um novo QR Code.
-
-* **Requisitos Funcionais:**
-    * Ao iniciar, a interface deve verificar o status da conexão com o WhatsApp.
-    * Se estiver conectado, deve exibir o status como `Conectado` e ocultar a área do QR Code.
-    * Se estiver desconectado, deve exibir o status como `Desconectado` e o botão deve estar com a opção de "Conectar".
-    * Ao clicar em "Conectar", deve ser enviado um comando para o backend iniciar o processo de conexão e gerar o QR Code.
-    * O QR Code deve ser exibido na área designada.
-    * O indicador de status deve mudar para `Aguardando QR Code`.
-    * Após escanear o QR Code com o WhatsApp, o status deve mudar para `Conectado` e o QR Code deve desaparecer.
-    * Se houver falha na autenticação, o status deve mudar para `Falha na Autenticação` e o botão deve mudar para "Tentar Novamente".
-
----
-
-## 5. Como rodar a interface web
-
-1. Instale dependências:
-   ```
-   npm install express cors
-   ```
-2. Execute o backend:
-   ```
-   node advogados.js
-   ```
-3. Abra o arquivo `interface.html` no navegador.
-
-A interface web se comunica com o backend via API REST em `http://localhost:3001`.
+**Desenvolvido com ❤️ para automatizar o atendimento de autoescolas**

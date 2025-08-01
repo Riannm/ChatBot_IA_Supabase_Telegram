@@ -1,5 +1,5 @@
 // Importando as dependências necessárias
-require("dotenv").config();
+require("dotenv").config(); // Carrega as variáveis de ambiente do arquivo .env
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const { executablePath } = require("puppeteer");
@@ -7,32 +7,25 @@ const axios = require("axios");
 const { OpenAI } = require("openai");
 const { createClient } = require("@supabase/supabase-js"); 
 const TelegramBot = require('node-telegram-bot-api');
-process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 let isWhatsAppBotActive = true; // Define o estado inicial do bot como ativo
 
 // --- CONFIGURAÇÕES E MENSAGENS ---
-const NOME_AUTOESCOLA = "Autoescola WBT de São João Evangelista";
+const NOME_AUTOESCOLA = "Autoescola WBT de SJE";
 
 // Credenciais do Telegram
-const TELEGRAM_BOT_TOKEN =
-  process.env.TELEGRAM_BOT_TOKEN ||
-  "7934260697:AAEjI0XpENN5ml-8I4qYEDrcVKUYU3AwHwM"; // Token do bot do Telegram
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // Token do bot do Telegram
 const urlApiTelegram = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`; // URL da API do Telegram para envio de mensagens
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "6219371991"; // ID do chat do Telegram para notificações
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // ID do chat do Telegram para notificações
 
 // CONFIGURAÇÕES DA INTELIGÊNCIA ARTIFICIAL (OpenRouter)
-const OPENROUTER_API_KEY =
-  process.env.OPENROUTER_API_KEY ||
-  "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";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ;
 const OPENROUTER_MODEL = "openai/gpt-4.1-nano";
 
 // NOVO: CONFIGURAÇÕES DO SUPABASE
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || "https://fcfydhdcpbgtnfkujgxc.supabase.co";
-const SUPABASE_KEY =
-  process.env.SUPABASE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZnlkaGRjcGJndG5ma3VqZ3hjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NDQwMTAsImV4cCI6MjA2OTMyMDAxMH0.piZ4oY6kqS5V_n5vspGURg1U4tdycQkyviLc0Dy0Xvw";
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const SUPABASE_URL =process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
 const telegramBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
@@ -168,6 +161,14 @@ const AI_SYSTEM_PROMPT = `Você é Cadu, o assistente virtual especialista da ${
 - Você tem acesso ao histórico de mensagens do cliente para dar respostas mais contextualizadas
 - Você deve sempre incentivar o uso do menu quando apropriado
 - Para questões específicas de agendamento, preços exatos e pagamentos, deve direcionar para atendente humano (opção 5)
+- A empresa tem filiais em Gonzaga, Divinolândia, Sardoá e São João Evangelista.
+
+## LINKS E REDES SOCIAIS:
+- Site: [https://templatekit.jegtheme.com/driveria/]
+- Instagram: [https://www.instagram.com/cfc_wbt/]
+- WhatsApp Sardoá: [https://api.whatsapp.com/send?phone=5533998456885&text=Ol%C3%A1%2C%20gostaria%20de%20saber%20sobre%20o%20or%C3%A7amento%20de%20habilita%C3%A7%C3%A3o.]
+- WhatsApp Gonzaga: [https://api.whatsapp.com/send?phone=553334151850&text=Ol%C3%A1%2C%20gostaria%20de%20saber%20sobre%20o%20or%C3%A7amento%20de%20habilita%C3%A7%C3%A3o.]
+- WhatsApp Divinolândia: [https://api.whatsapp.com/send?phone=553334141947&text=Ol%C3%A1%2C%20gostaria%20de%20saber%20sobre%20o%20or%C3%A7amento%20de%20habilita%C3%A7%C3%A3o.]
 
 ## SUA PERSONALIDADE E TOM:
 - Seja amigável, profissional e prestativo
@@ -228,6 +229,9 @@ const AI_SYSTEM_PROMPT = `Você é Cadu, o assistente virtual especialista da ${
 **Para perguntas sobre tempo de habilitação:**
 "O processo varia de pessoa para pessoa, mas geralmente leva de 3 a 6 meses. Para entender melhor nosso cronograma, digite *4* para ver horários ou *5* para falar com nossa equipe! ⏰"
 
+**Caso o usuário mencione ser de uma das cidades, diferentes de São João Evangelista**
+"Ah, você é de *[cidade]*! Temos filiais em *Gonzaga, Divinolândia, Sardoá e São João Evangelista*. Para saber mais sobre horários e pacotes na sua região, digite *4* ou *5* para falar com um atendente! 😊"
+
 **Para perguntas repetidas (usando histórico):**
 "Como conversamos anteriormente sobre [assunto], [complemento da informação]. Digite *[número]* para mais detalhes ou *5* para falar com nossa equipe!"
 
@@ -266,101 +270,46 @@ const openAiClient = new OpenAI({
 console.log("Iniciando o bot da Autoescola...");
 
 const client = new Client({
-    authStrategy: new LocalAuth({
-        clientId: "autoescola-bot"
-    }),
-    puppeteer: {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
-        ]
-        // Removemos completamente o executablePath
-    }
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        headless: false, // Use false para ver a janela do navegador em modo de depuração
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-extensions',
+            '--disable-dev-shm-usage',
+            '--no-default-browser-check',
+            '--single-process',
+            '--no-zygote',
+        ],
+        // Remove a linha executablePath, a biblioteca vai encontrar o executável automaticamente
+    }
 });
+
 // Controle de sessões para saber se é a primeira interação
 const sessoesUsuarios = new Map();
 
-// Evento para gerar QR Code no terminal
-client.on('qr', (qr) => {
-    console.log('\n🔗 Escaneie o QR Code abaixo com seu WhatsApp:');
-    console.log('\n📱 Abra o WhatsApp > Menu (3 pontos) > Aparelhos conectados > Conectar um aparelho\n');
-    
-    // Gera QR code no terminal
-    qrcode.generate(qr, { small: true });
-    
-    console.log('\n⏱️  O QR Code expira em 20 segundos. Se não conseguir escanear a tempo, ele será regenerado automaticamente.\n');
+// Inicialização do WhatsApp
+client.on("qr", (qr) => {
+  qrcode.generate(qr, { small: true });
+  console.log(
+    "[QR CODE] Escaneie o QR Code com o seu WhatsApp ou use a janela do navegador."
+  );
+});
+client.on("ready", () => {
+  console.log("[SUCESSO] O bot está conectado e funcionando!");
+});
+client.on("authenticated", () => {
+  console.log("[AUTENTICAÇÃO] Autenticado!");
+});
+client.on("auth_failure", (msg) => {
+  console.error("[ERRO] Falha na autenticação!", msg);
+  process.exit(1);
+});
+client.on("disconnected", (reason) => {
+  console.log("[AVISO] Cliente desconectado!", reason);
 });
 
-// Evento quando está autenticando
-client.on('authenticated', () => {
-    console.log('✅ Autenticado com sucesso!');
-});
-
-// Evento quando falha a autenticação
-client.on('auth_failure', (msg) => {
-    console.error('❌ Falha na autenticação:', msg);
-});
-
-// Evento quando está pronto
-client.on('ready', () => {
-    console.log('🚀 Bot WhatsApp da Autoescola está pronto e rodando!');
-    console.log('📞 Aguardando mensagens...\n');
-});
-
-// Evento para mensagens recebidas
-client.on('message', async (message) => {
-    console.log(`📨 Nova mensagem de ${message.from}: ${message.body}`);
-    
-    // Exemplo de resposta automática
-    if (message.body.toLowerCase().includes('oi') || message.body.toLowerCase().includes('olá')) {
-        await message.reply('Olá! Bem-vindo à nossa autoescola! Como posso ajudá-lo?');
-    }
-    
-    // Adicione aqui sua lógica de bot
-});
-
-// Evento para desconexão
-client.on('disconnected', (reason) => {
-    console.log('❌ Cliente desconectado:', reason);
-    console.log('🔄 Tentando reconectar...');
-});
-
-// Eventos de loading
-client.on('loading_screen', (percent, message) => {
-    console.log(`⏳ Carregando: ${percent}% - ${message}`);
-});
-
-// Tratamento de erros
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Erro não tratado:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-    console.error('❌ Exceção não capturada:', error);
-    process.exit(1);
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('\n🛑 Desligando o bot...');
-    await client.destroy();
-    process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-    console.log('\n🛑 Desligando o bot...');
-    await client.destroy();
-    process.exit(0);
-});
-
-// Inicializar o cliente
-console.log('🔄 Inicializando cliente WhatsApp...');
 client.initialize();
 
 // --- FUNÇÕES AUXILIARES ---
@@ -471,10 +420,7 @@ async function buscarHistoricoUsuario(userTexto) {
 
 // Função para obter resposta da Inteligência Artificial com histórico
 async function obterRespostaDaIA(mensagemUsuario, historicoUsuario = "") {
-  if (
-    !OPENROUTER_API_KEY ||
-    OPENROUTER_API_KEY === "SUA_NOVA_CHAVE_DA_OPENROUTER_AQUI"
-  ) {
+  if ( !OPENROUTER_API_KEY) {
     console.log(
       "[AVISO IA] Chave da OpenRouter não configurada. A IA está desativada."
     );

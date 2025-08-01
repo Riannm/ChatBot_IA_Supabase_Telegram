@@ -267,7 +267,7 @@ console.log("Iniciando o bot da Autoescola...");
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: '/usr/bin/chromium-browser', // Caminho no Linux
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -276,8 +276,23 @@ const client = new Client({
             '--no-first-run',
             '--no-zygote',
             '--single-process',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-plugins',
+            '--disable-images',
+            '--disable-javascript',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-features=TranslateUI',
+            '--disable-ipc-flooding-protection',
+            '--no-default-browser-check',
+            '--no-first-run',
+            '--mute-audio',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor'
         ],
+        headless: true
     }
 });
 // Controle de sessões para saber se é a primeira interação

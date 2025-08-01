@@ -1,46 +1,41 @@
-# Use uma imagem base com Node.js
-FROM node:18-alpine
+FROM node:20-slim
 
-# Instalar dependências necessárias para o Puppeteer/Chromium
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
+# Instalar apenas as dependências mínimas necessárias
+RUN apt-get update && apt-get install -y \
     ca-certificates \
-    ttf-freefont \
-    yarn \
-    git
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdrm2 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# Dizer ao Puppeteer para pular o download do Chromium, pois usaremos o do sistema
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+WORKDIR /code
 
-# Criar diretório da aplicação
-WORKDIR /app
-
-# Copiar arquivos de dependências primeiro (para cache do Docker)
+# Copiar package.json e package-lock.json
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm install --only=production
+RUN npm ci --only=production
 
 # Copiar código da aplicação
 COPY . .
 
-# Criar usuário não-root para segurança
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S whatsappbot -u 1001 -G nodejs
+# Criar diretório para sessões do WhatsApp
+RUN mkdir -p .wwebjs_auth && chmod 755 .wwebjs_auth
 
-# Criar diretório para dados do WhatsApp e dar permissões
-RUN mkdir -p /app/.wwebjs_auth && \
-    chown -R whatsappbot:nodejs /app
+# Criar usuário não-root
+RUN groupadd -r nodeuser && useradd -r -g nodeuser -s /bin/bash nodeuser
+RUN chown -R nodeuser:nodeuser /code
+USER nodeuser
 
-# Mudar para usuário não-root
-USER whatsappbot
-
-# Expor porta (opcional, para futuras APIs REST)
-EXPOSE 3000
-
-# Comando para iniciar a aplicação
-CMD ["npm", "start"]
+# Comando para iniciar
+CMD ["node", "index.js"]

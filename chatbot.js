@@ -265,9 +265,11 @@ const openAiClient = new OpenAI({
 console.log("Iniciando o bot da Autoescola...");
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({
+        clientId: "autoescola-bot" // ID único para salvar a sessão
+    }),
     puppeteer: {
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -275,50 +277,92 @@ const client = new Client({
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process',
             '--disable-gpu',
             '--disable-extensions',
-            '--disable-plugins',
-            '--disable-images',
-            '--disable-javascript',
             '--disable-background-timer-throttling',
             '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--disable-features=TranslateUI',
-            '--disable-ipc-flooding-protection',
-            '--no-default-browser-check',
-            '--no-first-run',
-            '--mute-audio',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor'
-        ],
-        headless: true
+            '--disable-renderer-backgrounding'
+        ]
     }
 });
 // Controle de sessões para saber se é a primeira interação
 const sessoesUsuarios = new Map();
 
-// Inicialização do WhatsApp
-client.on("qr", (qr) => {
-  qrcode.generate(qr, { small: true });
-  console.log(
-    "[QR CODE] Escaneie o QR Code com o seu WhatsApp ou use a janela do navegador."
-  );
-});
-client.on("ready", () => {
-  console.log("[SUCESSO] O bot está conectado e funcionando!");
-});
-client.on("authenticated", () => {
-  console.log("[AUTENTICAÇÃO] Autenticado!");
-});
-client.on("auth_failure", (msg) => {
-  console.error("[ERRO] Falha na autenticação!", msg);
-  process.exit(1);
-});
-client.on("disconnected", (reason) => {
-  console.log("[AVISO] Cliente desconectado!", reason);
+// Evento para gerar QR Code no terminal
+client.on('qr', (qr) => {
+    console.log('\n🔗 Escaneie o QR Code abaixo com seu WhatsApp:');
+    console.log('\n📱 Abra o WhatsApp > Menu (3 pontos) > Aparelhos conectados > Conectar um aparelho\n');
+    
+    // Gera QR code no terminal
+    qrcode.generate(qr, { small: true });
+    
+    console.log('\n⏱️  O QR Code expira em 20 segundos. Se não conseguir escanear a tempo, ele será regenerado automaticamente.\n');
 });
 
+// Evento quando está autenticando
+client.on('authenticated', () => {
+    console.log('✅ Autenticado com sucesso!');
+});
+
+// Evento quando falha a autenticação
+client.on('auth_failure', (msg) => {
+    console.error('❌ Falha na autenticação:', msg);
+});
+
+// Evento quando está pronto
+client.on('ready', () => {
+    console.log('🚀 Bot WhatsApp da Autoescola está pronto e rodando!');
+    console.log('📞 Aguardando mensagens...\n');
+});
+
+// Evento para mensagens recebidas
+client.on('message', async (message) => {
+    console.log(`📨 Nova mensagem de ${message.from}: ${message.body}`);
+    
+    // Exemplo de resposta automática
+    if (message.body.toLowerCase().includes('oi') || message.body.toLowerCase().includes('olá')) {
+        await message.reply('Olá! Bem-vindo à nossa autoescola! Como posso ajudá-lo?');
+    }
+    
+    // Adicione aqui sua lógica de bot
+});
+
+// Evento para desconexão
+client.on('disconnected', (reason) => {
+    console.log('❌ Cliente desconectado:', reason);
+    console.log('🔄 Tentando reconectar...');
+});
+
+// Eventos de loading
+client.on('loading_screen', (percent, message) => {
+    console.log(`⏳ Carregando: ${percent}% - ${message}`);
+});
+
+// Tratamento de erros
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Erro não tratado:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('❌ Exceção não capturada:', error);
+    process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Desligando o bot...');
+    await client.destroy();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('\n🛑 Desligando o bot...');
+    await client.destroy();
+    process.exit(0);
+});
+
+// Inicializar o cliente
+console.log('🔄 Inicializando cliente WhatsApp...');
 client.initialize();
 
 // --- FUNÇÕES AUXILIARES ---

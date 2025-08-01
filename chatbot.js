@@ -32,8 +32,7 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   process.env.SUPABASE_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZnlkaGRjcGJndG5ma3VqZ3hjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NDQwMTAsImV4cCI6MjA2OTMyMDAxMH0.piZ4oY6kqS5V_n5vspGURg1U4tdycQkyviLc0Dy0Xvw";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 const telegramBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
 
